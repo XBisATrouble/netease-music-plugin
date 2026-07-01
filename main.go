@@ -57,13 +57,15 @@ func main() {}
 
 // 编译期断言:确认实现了期望的 Provider 接口。
 var (
-	_ metadata.ArtistImagesProvider    = (*neteasePlugin)(nil)
-	_ metadata.ArtistBiographyProvider = (*neteasePlugin)(nil)
-	_ metadata.ArtistTopSongsProvider  = (*neteasePlugin)(nil)
-	_ metadata.SimilarArtistsProvider  = (*neteasePlugin)(nil)
-	_ metadata.AlbumInfoProvider       = (*neteasePlugin)(nil)
-	_ metadata.AlbumImagesProvider     = (*neteasePlugin)(nil)
-	_ lyrics.Lyrics                    = (*neteasePlugin)(nil)
+	_ metadata.ArtistImagesProvider       = (*neteasePlugin)(nil)
+	_ metadata.ArtistBiographyProvider    = (*neteasePlugin)(nil)
+	_ metadata.ArtistTopSongsProvider     = (*neteasePlugin)(nil)
+	_ metadata.SimilarArtistsProvider     = (*neteasePlugin)(nil)
+	_ metadata.AlbumInfoProvider          = (*neteasePlugin)(nil)
+	_ metadata.AlbumImagesProvider        = (*neteasePlugin)(nil)
+	_ metadata.ArtistURLProvider          = (*neteasePlugin)(nil)
+	_ metadata.SimilarSongsByTrackProvider = (*neteasePlugin)(nil)
+	_ lyrics.Lyrics                       = (*neteasePlugin)(nil)
 )
 
 // ---- 配置 ----
@@ -182,6 +184,22 @@ func (p *neteasePlugin) GetArtistBiography(input metadata.ArtistRequest) (*metad
 	return &metadata.ArtistBiographyResponse{Biography: desc}, nil
 }
 
+// ---- ArtistURL ----
+
+func (p *neteasePlugin) GetArtistURL(input metadata.ArtistRequest) (*metadata.ArtistURLResponse, error) {
+	c, err := newClientFromConfig()
+	if err != nil {
+		return nil, err
+	}
+	artist, err := p.findArtist(c, input.Name)
+	if err != nil {
+		return nil, err
+	}
+	return &metadata.ArtistURLResponse{
+		URL: fmt.Sprintf("https://music.163.com/#/artist?id=%d", artist.ID),
+	}, nil
+}
+
 func (p *neteasePlugin) GetSimilarArtists(input metadata.SimilarArtistsRequest) (*metadata.SimilarArtistsResponse, error) {
 	c, err := newClientFromConfig()
 	if err != nil {
@@ -281,6 +299,45 @@ func (p *neteasePlugin) GetAlbumImages(input metadata.AlbumRequest) (*metadata.A
 	return &metadata.AlbumImagesResponse{
 		Images: []metadata.ImageInfo{{URL: picURL, Size: albumPicSz}},
 	}, nil
+}
+
+// ---- SimilarSongs ----
+
+func (p *neteasePlugin) GetSimilarSongsByTrack(input metadata.SimilarSongsByTrackRequest) (*metadata.SimilarSongsResponse, error) {
+	c, err := newClientFromConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	// 按标题+歌手在网易云搜索歌曲,找到匹配的 ID 后获取相似推荐。
+	keywords := strings.TrimSpace(input.Artist + " " + input.Name)
+	songs, err := c.searchSongs(keywords, searchLimit())
+	if err != nil {
+		return nil, err
+	}
+	song := pickSong(songs, input.Name, input.Artist)
+	if song == nil {
+		return nil, ErrNotFound
+	}
+
+	similar, err := c.getSimilarSongs(song.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	limit := int(input.Count)
+	out := make([]metadata.SongRef, 0, len(similar))
+	for i := range similar {
+		if limit > 0 && len(out) >= limit {
+			break
+		}
+		out = append(out, metadata.SongRef{
+			Name:   similar[i].Name,
+			Artist: similar[i].Artists[0].Name,
+			Album:  similar[i].Album.Name,
+		})
+	}
+	return &metadata.SimilarSongsResponse{Songs: out}, nil
 }
 
 // ---- Lyrics ----

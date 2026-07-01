@@ -10,8 +10,10 @@
 
 - **歌手头像**：返回歌手大图与 1v1 头像，并附带网易云 CDN 缩放参数，加载更快、体积更小。
 - **歌手简介**：优先取一段式综述（`briefDesc`），缺失时回退拼接分段介绍。
+- **歌手链接**：返回歌手在网易云音乐的页面链接（如 `https://music.163.com/#/artist?id=xxxxx`）。
 - **热门歌曲**：返回歌手的热门单曲列表。
 - **相似歌手**：基于网易云的相似歌手推荐。
+- **相似歌曲**：基于网易云的相似歌曲推荐（按曲目匹配）。
 - **专辑信息**：专辑简介与网易云页面链接。
 - **专辑封面**。
 - **歌词**：按「歌手 + 标题」匹配曲目歌词；可选返回**中文翻译歌词**作为额外一条；自动把网易云混入 LRC 的 JSON 元信息行（作词/作曲/编曲等）还原为标准 LRC 行，避免被丢弃。
@@ -88,7 +90,8 @@ ND_AGENTS=netease,spotify,lastfm
 无需部署任何额外服务，插件直接调用网易云官方公开 API。
 
 - **歌手头像、简介、热门歌曲、专辑信息与封面、歌词**均可直接获取。
-- **相似歌手**和**歌词翻译**依赖登录态，需在 `netease_cookie` 中填入 `MUSIC_U`。
+- **歌手链接**可直接获取，无需 Cookie。
+- **相似歌手**和**相似歌曲**和**歌词翻译**依赖登录态，需在 `netease_cookie` 中填入 `MUSIC_U`。
   - 获取方式：在浏览器登录 [music.163.com](https://music.163.com)，从开发者工具的 Cookie 中复制 `MUSIC_U` 的值，按 `MUSIC_U=xxx;os=pc;appver=8.9.75;` 格式填入。
   - 未填写 Cookie 时，相似歌手会返回明确的错误提示，其余功能不受影响。
 
@@ -102,8 +105,10 @@ ND_AGENTS=netease,spotify,lastfm
 | --- | --- | --- |
 | 歌手头像 | `ArtistImagesProvider` | 搜索歌手 → `picUrl` / `img1v1Url` |
 | 歌手简介 | `ArtistBiographyProvider` | `/artist/desc`（direct 下取 `/api/v1/artist/{id}` 的 `briefDesc`） |
-| 相似歌手 | `SimilarArtistsProvider` | `/simi/artist`（direct 需 Cookie） |
+| 歌手链接 | `ArtistURLProvider` | 搜索歌手 → `https://music.163.com/#/artist?id={id}` |
 | 热门歌曲 | `ArtistTopSongsProvider` | `/artist/top/song`（direct 下取 `hotSongs`） |
+| 相似歌手 | `SimilarArtistsProvider` | `/simi/artist`（direct 需 Cookie） |
+| 相似歌曲 | `SimilarSongsByTrackProvider` | 搜索歌曲 → `/song/similar`（direct 需 Cookie） |
 | 专辑信息 | `AlbumInfoProvider` | `/album`（direct 下 `/api/v1/album/{id}`） |
 | 专辑封面 | `AlbumImagesProvider` | 搜索专辑 → `picUrl` |
 | 歌词 | `Lyrics` | `/lyric/new`（direct 下 `/api/song/lyric`） |
@@ -125,7 +130,7 @@ ND_AGENTS=netease,spotify,lastfm
 
 | 模式 | 基础端点 |
 | --- | --- |
-| `proxy` | 自建 NeteaseCloudMusicApi（`/search`、`/artist/desc`、`/simi/artist`、`/artist/top/song`、`/album`、`/lyric/new`） |
+| `proxy` | 自建 NeteaseCloudMusicApi（`/search`、`/artist/desc`、`/simi/artist`、`/artist/top/song`、`/song/similar`、`/album`、`/lyric/new`） |
 | `direct` | `music.163.com`、`interface3.music.163.com`、`*.music.126.net` 官方公开 API |
 
 ### 关键文件

@@ -167,6 +167,28 @@ type DirectArtistResponse struct {
 	} `json:"artist"`
 }
 
+// ---- 相似歌曲 ----
+
+// SimiSongResponse 映射 /song/similar 的响应。
+// proxy 与 direct 模式共用此结构。
+type SimiSongResponse struct {
+	Code  int           `json:"code"`
+	Songs []SimiSongItem `json:"songs"`
+}
+
+// SimiSongItem 是相似歌曲条目,覆盖网易云返回的歌曲字段。
+type SimiSongItem struct {
+	ID      int64  `json:"id"`
+	Name    string `json:"name"`
+	Artists []struct {
+		Name string `json:"name"`
+	} `json:"artists"`
+	Album struct {
+		Name string `json:"name"`
+	} `json:"album"`
+	Duration int32 `json:"duration"`
+}
+
 // DirectAlbumResponse 映射官方 /api/v1/album/{id} 的响应。
 type DirectAlbumResponse struct {
 	Code  int `json:"code"`

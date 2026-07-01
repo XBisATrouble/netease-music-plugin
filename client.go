@@ -29,6 +29,7 @@ const (
 	directArtistURL   = "https://music.163.com/api/v1/artist/"
 	directAlbumURL    = "https://music.163.com/api/v1/album/"
 	directSimiArtist  = "https://music.163.com/api/discovery/simiArtist"
+	directSimiSongURL = "https://music.163.com/api/discovery/simiSong"
 	directLyricURL    = "https://interface3.music.163.com/api/song/lyric"
 	directUserAgent   = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"
 	directLyricCookie = "os=osx; osver=MacOS-14.3.1-arm; appver=2.0.3.131777"
@@ -336,6 +337,70 @@ func (c *client) searchSongsRaw(keywords string, limit int) ([]SongHit, error) {
 		return nil, ErrNotFound
 	}
 	return res.Result.Songs, nil
+}
+
+// getSimilarSongs 获取相似歌曲。
+func (c *client) getSimilarSongs(songID int64) ([]SimiSongItem, error) {
+	var out []SimiSongItem
+	err := c.cached("s:simi:"+strconv.FormatInt(songID, 10), &out, func() error {
+		songs, ferr := c.getSimilarSongsRaw(songID)
+		out = songs
+		return ferr
+	})
+	return out, err
+}
+
+func (c *client) getSimilarSongsRaw(songID int64) ([]SimiSongItem, error) {
+	if c.mode == modeDirect {
+		return c.getSimilarSongsDirect(songID)
+	}
+
+	params := url.Values{}
+	params.Set("id", strconv.FormatInt(songID, 10))
+
+	var res SimiSongResponse
+	if err := c.makeRequest("/song/similar", params, &res); err != nil {
+		return nil, err
+	}
+	if res.Code != 200 || len(res.Songs) == 0 {
+		return nil, ErrNotFound
+	}
+	return res.Songs, nil
+}
+
+// getSimilarSongsDirect 直连模式获取相似歌曲。
+// POST form-urlencoded,需要 cookie 才能获取有效结果。
+func (c *client) getSimilarSongsDirect(songID int64) ([]SimiSongItem, error) {
+	body := "songid=" + strconv.FormatInt(songID, 10)
+	if c.cookie == "" {
+		return nil, errors.New("获取相似歌曲需要填写 netease_cookie")
+	}
+
+	resp, err := host.HTTPSend(host.HTTPRequest{
+		Method: "POST",
+		URL:    directSimiSongURL,
+		Headers: c.directHeaders(map[string]string{
+			"Referer":      "https://music.163.com/",
+			"Content-Type": "application/x-www-form-urlencoded",
+		}),
+		Body:      []byte(body),
+		TimeoutMs: httpTimeoutMs,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("netease request failed: %w", err)
+	}
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("netease error: HTTP %d", resp.StatusCode)
+	}
+
+	var res SimiSongResponse
+	if err := json.Unmarshal(resp.Body, &res); err != nil {
+		return nil, err
+	}
+	if len(res.Songs) == 0 {
+		return nil, ErrNotFound
+	}
+	return res.Songs, nil
 }
 
 // getLyric 获取歌词(含翻译)。
