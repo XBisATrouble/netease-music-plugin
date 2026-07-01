@@ -61,6 +61,8 @@ ND_AGENTS=netease,spotify,lastfm
 
 ## 配置
 
+![配置界面](docs/images/setting.png)
+
 在 Navidrome 的插件设置界面填写以下配置项：
 
 | 配置项 | 说明 | 默认值 |
