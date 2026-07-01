@@ -1,0 +1,10 @@
+# 编译产物
+plugin.wasm
+*.ndp
+
+# 本地 go build 产生的二进制(与 module 同名)
+/netease-plugin
+
+# IDE
+.idea/
+.vscode/

@@ -1,0 +1,50 @@
+name: Release
+
+# 推送形如 v1.1.0 的 tag 时触发,自动构建并发布 netease.ndp 到 Releases
+on:
+  push:
+    tags:
+      - "v*"
+  # 也允许在 Actions 页手动触发(仅构建,不发布)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+
+      - name: Setup TinyGo
+        uses: acifani/setup-tinygo@v2
+        with:
+          tinygo-version: "0.41.1"
+
+      - name: Build plugin.wasm
+        run: |
+          tinygo build -opt=2 -scheduler=none -no-debug \
+            -o plugin.wasm -target wasip1 -buildmode=c-shared .
+
+      - name: Package netease.ndp
+        run: zip -j netease.ndp manifest.json plugin.wasm
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: netease.ndp
+          path: netease.ndp
+
+      - name: Publish Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: netease.ndp
+          generate_release_notes: true

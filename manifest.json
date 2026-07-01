@@ -1,0 +1,114 @@
+{
+  "name": "Netease Music",
+  "author": "xbisatrouble",
+  "version": "1.1.0",
+  "description": "从网易云音乐获取歌手头像/简介/热门歌曲/相似歌手、专辑信息/封面与歌词(支持翻译)。支持两种模式:自建代理 / 官方直连",
+  "website": "https://github.com/XBisATrouble/netease-music-plugin",
+  "permissions": {
+    "http": {
+      "reason": "代理模式访问自建 NeteaseCloudMusicApi;直连模式访问网易云官方 API(music.163.com / interface3.music.163.com / *.music.126.net)",
+      "requiredHosts": [
+        "music.163.com",
+        "interface3.music.163.com",
+        "*.music.126.net"
+      ]
+    }
+  },
+  "config": {
+    "schema": {
+      "type": "object",
+      "properties": {
+        "api_mode": {
+          "type": "string",
+          "title": "API 模式",
+          "description": "proxy=自建 NeteaseCloudMusicApi;direct=直连网易云官方 API(无需额外服务,部分功能需 Cookie)",
+          "enum": ["proxy", "direct"],
+          "default": "direct"
+        },
+        "api_url": {
+          "type": "string",
+          "title": "NeteaseCloudMusicApi 地址",
+          "description": "代理模式必填,容器内可达地址,例如 http://172.18.0.1:3000"
+        },
+        "netease_cookie": {
+          "type": "string",
+          "title": "网易云 Cookie (MUSIC_U)",
+          "description": "直连模式下,获取相似歌手和歌词需要。格式:MUSIC_U=xxx;os=pc;appver=8.9.75;"
+        },
+        "search_limit": {
+          "type": "integer",
+          "title": "搜索候选数量",
+          "description": "歌手/专辑/歌曲搜索时取回的候选条数,用于名称精确匹配",
+          "default": 5,
+          "minimum": 1,
+          "maximum": 30
+        },
+        "strict_name_match": {
+          "type": "boolean",
+          "title": "严格名称匹配",
+          "description": "开启后仅当名称完全一致(忽略大小写)才采用,避免给冷门艺人配错信息",
+          "default": true
+        },
+        "enable_translated_lyrics": {
+          "type": "boolean",
+          "title": "返回翻译歌词",
+          "description": "歌词若有中文翻译,作为额外的一条歌词返回",
+          "default": true
+        }
+      },
+      "if": {
+        "properties": {
+          "api_mode": { "const": "proxy" }
+        }
+      },
+      "then": {
+        "required": ["api_url"]
+      }
+    },
+    "uiSchema": {
+      "type": "VerticalLayout",
+      "elements": [
+        {
+          "type": "Group",
+          "label": "🔌 API 接入",
+          "elements": [
+            { "type": "Control", "scope": "#/properties/api_mode" },
+            {
+              "type": "Control",
+              "scope": "#/properties/api_url",
+              "rule": {
+                "effect": "SHOW",
+                "condition": {
+                  "type": "LEAF",
+                  "scope": "#/properties/api_mode",
+                  "expectedValue": "proxy"
+                }
+              }
+            },
+            {
+              "type": "Control",
+              "scope": "#/properties/netease_cookie",
+              "rule": {
+                "effect": "SHOW",
+                "condition": {
+                  "type": "LEAF",
+                  "scope": "#/properties/api_mode",
+                  "expectedValue": "direct"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "Group",
+          "label": "⚙️ 行为调优",
+          "elements": [
+            { "type": "Control", "scope": "#/properties/search_limit" },
+            { "type": "Control", "scope": "#/properties/strict_name_match" },
+            { "type": "Control", "scope": "#/properties/enable_translated_lyrics" }
+          ]
+        }
+      ]
+    }
+  }
+}
