@@ -1,7 +1,7 @@
 {
   "name": "Netease Music",
   "author": "xbisatrouble",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "从网易云音乐获取歌手头像/简介/热门歌曲/相似歌手、专辑信息/封面与歌词(支持翻译)。支持两种模式:自建代理 / 官方直连",
   "website": "https://github.com/XBisATrouble/netease-music-plugin",
   "permissions": {
@@ -12,6 +12,9 @@
         "interface3.music.163.com",
         "*.music.126.net"
       ]
+    },
+    "cache": {
+      "reason": "缓存搜索与详情结果,减少对上游 API 的重复请求"
     }
   },
   "config": {
@@ -54,6 +57,20 @@
           "title": "返回翻译歌词",
           "description": "歌词若有中文翻译,作为额外的一条歌词返回",
           "default": true
+        },
+        "enable_cache": {
+          "type": "boolean",
+          "title": "启用缓存",
+          "description": "缓存搜索与详情结果,减少对上游 API 的重复请求(缓存存于 Navidrome 进程内存,重启后失效)",
+          "default": true
+        },
+        "cache_ttl_days": {
+          "type": "integer",
+          "title": "缓存有效期(天)",
+          "description": "正向缓存的过期时间;查不到的结果固定缓存 2 小时",
+          "default": 7,
+          "minimum": 1,
+          "maximum": 365
         }
       },
       "if": {
@@ -106,6 +123,25 @@
             { "type": "Control", "scope": "#/properties/search_limit" },
             { "type": "Control", "scope": "#/properties/strict_name_match" },
             { "type": "Control", "scope": "#/properties/enable_translated_lyrics" }
+          ]
+        },
+        {
+          "type": "Group",
+          "label": "🗄️ 缓存",
+          "elements": [
+            { "type": "Control", "scope": "#/properties/enable_cache" },
+            {
+              "type": "Control",
+              "scope": "#/properties/cache_ttl_days",
+              "rule": {
+                "effect": "ENABLE",
+                "condition": {
+                  "type": "LEAF",
+                  "scope": "#/properties/enable_cache",
+                  "expectedValue": true
+                }
+              }
+            }
           ]
         }
       ]

@@ -108,6 +108,16 @@ func (c *client) makeRequest(path string, params url.Values, response any) error
 
 // searchArtists 调用歌手搜索(type=100)。
 func (c *client) searchArtists(name string, limit int) ([]Artist, error) {
+	var out []Artist
+	err := c.cached("s:ar:"+strconv.Itoa(limit)+":"+normKey(name), &out, func() error {
+		artists, ferr := c.searchArtistsRaw(name, limit)
+		out = artists
+		return ferr
+	})
+	return out, err
+}
+
+func (c *client) searchArtistsRaw(name string, limit int) ([]Artist, error) {
 	if c.mode == modeDirect {
 		return c.searchDirect(name, 100, limit)
 	}
@@ -129,6 +139,16 @@ func (c *client) searchArtists(name string, limit int) ([]Artist, error) {
 
 // getArtistDesc 获取歌手简介。
 func (c *client) getArtistDesc(artistID int64) (string, error) {
+	var out string
+	err := c.cached("a:desc:"+strconv.FormatInt(artistID, 10), &out, func() error {
+		desc, ferr := c.getArtistDescRaw(artistID)
+		out = desc
+		return ferr
+	})
+	return out, err
+}
+
+func (c *client) getArtistDescRaw(artistID int64) (string, error) {
 	if c.mode == modeDirect {
 		return c.getArtistDescDirect(artistID)
 	}
@@ -166,6 +186,16 @@ func (c *client) getArtistDesc(artistID int64) (string, error) {
 
 // getSimilarArtists 获取相似歌手。
 func (c *client) getSimilarArtists(artistID int64) ([]Artist, error) {
+	var out []Artist
+	err := c.cached("a:simi:"+strconv.FormatInt(artistID, 10), &out, func() error {
+		artists, ferr := c.getSimilarArtistsRaw(artistID)
+		out = artists
+		return ferr
+	})
+	return out, err
+}
+
+func (c *client) getSimilarArtistsRaw(artistID int64) ([]Artist, error) {
 	if c.mode == modeDirect {
 		return c.getSimilarArtistsDirect(artistID)
 	}
@@ -185,6 +215,16 @@ func (c *client) getSimilarArtists(artistID int64) ([]Artist, error) {
 
 // getArtistTopSongs 获取歌手热门歌曲。
 func (c *client) getArtistTopSongs(artistID int64) ([]SongHit, error) {
+	var out []SongHit
+	err := c.cached("a:top:"+strconv.FormatInt(artistID, 10), &out, func() error {
+		songs, ferr := c.getArtistTopSongsRaw(artistID)
+		out = songs
+		return ferr
+	})
+	return out, err
+}
+
+func (c *client) getArtistTopSongsRaw(artistID int64) ([]SongHit, error) {
 	if c.mode == modeDirect {
 		return c.getArtistTopSongsDirect(artistID)
 	}
@@ -204,6 +244,16 @@ func (c *client) getArtistTopSongs(artistID int64) ([]SongHit, error) {
 
 // searchAlbums 调用专辑搜索(type=10)。
 func (c *client) searchAlbums(keywords string, limit int) ([]AlbumBrief, error) {
+	var out []AlbumBrief
+	err := c.cached("s:al:"+strconv.Itoa(limit)+":"+normKey(keywords), &out, func() error {
+		albums, ferr := c.searchAlbumsRaw(keywords, limit)
+		out = albums
+		return ferr
+	})
+	return out, err
+}
+
+func (c *client) searchAlbumsRaw(keywords string, limit int) ([]AlbumBrief, error) {
 	if c.mode == modeDirect {
 		return c.searchDirectAlbums(keywords, limit)
 	}
@@ -225,6 +275,21 @@ func (c *client) searchAlbums(keywords string, limit int) ([]AlbumBrief, error) 
 
 // getAlbum 获取专辑详情(含描述)。
 func (c *client) getAlbum(albumID int64) (*AlbumDetailResponse, error) {
+	var out AlbumDetailResponse
+	err := c.cached("al:"+strconv.FormatInt(albumID, 10), &out, func() error {
+		detail, ferr := c.getAlbumRaw(albumID)
+		if ferr == nil && detail != nil {
+			out = *detail
+		}
+		return ferr
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *client) getAlbumRaw(albumID int64) (*AlbumDetailResponse, error) {
 	if c.mode == modeDirect {
 		return c.getAlbumDirect(albumID)
 	}
@@ -244,6 +309,16 @@ func (c *client) getAlbum(albumID int64) (*AlbumDetailResponse, error) {
 
 // searchSongs 调用单曲搜索(type=1)。
 func (c *client) searchSongs(keywords string, limit int) ([]SongHit, error) {
+	var out []SongHit
+	err := c.cached("s:so:"+strconv.Itoa(limit)+":"+normKey(keywords), &out, func() error {
+		songs, ferr := c.searchSongsRaw(keywords, limit)
+		out = songs
+		return ferr
+	})
+	return out, err
+}
+
+func (c *client) searchSongsRaw(keywords string, limit int) ([]SongHit, error) {
 	if c.mode == modeDirect {
 		return c.searchDirectSongs(keywords, limit)
 	}
@@ -265,6 +340,21 @@ func (c *client) searchSongs(keywords string, limit int) ([]SongHit, error) {
 
 // getLyric 获取歌词(含翻译)。
 func (c *client) getLyric(songID int64) (*LyricNewResponse, error) {
+	var out LyricNewResponse
+	err := c.cached("ly:"+strconv.FormatInt(songID, 10), &out, func() error {
+		lyric, ferr := c.getLyricRaw(songID)
+		if ferr == nil && lyric != nil {
+			out = *lyric
+		}
+		return ferr
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *client) getLyricRaw(songID int64) (*LyricNewResponse, error) {
 	if c.mode == modeDirect {
 		return c.getLyricDirect(songID)
 	}
